@@ -1,129 +1,86 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Convolutional Neural Network
 
-# C extensions
-*.so
+# Importing the libraries
+import tensorflow as tf
+from keras.preprocessing.image import ImageDataGenerator
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Part 1 - Data Preprocessing
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Preprocessing the Training set
+train_datagen = ImageDataGenerator(rescale = 1./255,
+                                   shear_range = 0.2,
+                                   zoom_range = 0.2,
+                                   horizontal_flip = True)
+training_set = train_datagen.flow_from_directory('dataset_2/seg_train',
+                                                 target_size = (128, 128),
+                                                 batch_size = 50,
+                                                 class_mode = 'binary')
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+# Preprocessing the Test set
+test_datagen = ImageDataGenerator(rescale = 1./255)
+test_set = test_datagen.flow_from_directory('dataset_2/seg_test',
+                                            target_size = (128, 128),
+                                            batch_size = 50,
+                                            class_mode = 'binary')
 
-# Translations
-*.mo
-*.pot
+# Part 2 - Building the CNN
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# Initialising the CNN
+cnn = tf.keras.models.Sequential()
 
-# Flask stuff:
-instance/
-.webassets-cache
+# Step 1 - Convolution
+cnn.add(tf.keras.layers.Conv2D(filters=150, kernel_size=3, activation='relu', input_shape=[128, 128, 3]))
 
-# Scrapy stuff:
-.scrapy
+# Step 2 - Pooling
+cnn.add(tf.keras.layers.MaxPool2D(4, 4))
 
-# Sphinx documentation
-docs/_build/
+# Adding a second convolutional layer
+cnn.add(tf.keras.layers.Conv2D(filters=120, kernel_size=3, activation='relu', padding = 'same'))
 
-# PyBuilder
-target/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+cnn.add(tf.keras.layers.Conv2D(filters=80, kernel_size=3, activation='relu', padding = 'same'))
 
-# IPython
-profile_default/
-ipython_config.py
 
-# pyenv
-.python-version
+cnn.add(tf.keras.layers.MaxPool2D(4, 4))
+# Step 3 - Flattening
+cnn.add(tf.keras.layers.Flatten())
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+# Step 4 - Full Connection
+cnn.add(tf.keras.layers.Dense(units=128, activation='relu'))
+cnn.add(tf.keras.layers.Dense(units=100, activation='relu'))
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
+# Step 5 - Output Layer
+cnn.add(tf.keras.layers.Dense(units=6, activation='softmax'))
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+# Part 3 - Training the CNN
 
-# SageMath parsed files
-*.sage.py
+# Compiling the CNN
+cnn.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# Training the CNN on the Training set and evaluating it on the Test set
+cnn.fit(x = training_set, validation_data = test_set, epochs = 32)
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Part 4 - Making a single prediction
+import numpy as np
+from keras.preprocessing import image
+test_image = image.load_img('dataset_2/seg_pred/1386.jpg', target_size = (128, 128, 3))
+test_image = image.img_to_array(test_image)
+test_image = np.expand_dims(test_image, axis = 0)
+training_set.class_indices
+result = cnn.predict(test_image)
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
+if result[0][0] == 1:
+    predictions = 'buildings'
+elif result[0][1] == 1:
+    predictions = 'forest'
+elif result[0][2] == 1:
+    predictions = 'glacier'
+elif result[0][3] == 1:
+    predictions = 'mountain'
+elif result[0][4] == 1:
+    predictions = 'sea'
+else:
+    predictions = 'street'
+    
+print(predictions)

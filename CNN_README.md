@@ -1,4 +1,4 @@
-# Deep-Learning-
+# CONVOLUTIONAL-NEURAL-NETWORK
 Here is a deep learning CNN model which makes use of various libraries such as tensorflow and numpy to train itslef.
 Basically it's an image classifier which classifies images of builidings, forests, mountains, glacier, sea, streets with an accuracy of around 94%.
 This model takes a time of around 110 minutes to train itself.
